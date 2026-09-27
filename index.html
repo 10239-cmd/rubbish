@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>เกมแยกขยะให้ถูกประเภท</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<meta name="theme-color" content="#10281b">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="แยกขยะ">
+<style>
+:root{
+  --green:#43a047; --green2:#1b5e20;
+  --yellow:#fdd835; --yellow2:#f57f17;
+  --red:#e53935; --red2:#7f0000;
+  --blue:#1e88e5; --blue2:#0d47a1;
+  --accent:#7ef9c0;
+  box-sizing:border-box;
+}
+*{box-sizing:inherit; margin:0; padding:0;}
+html,body{height:100%;}
+body{
+  font-family:'Segoe UI',Tahoma,Arial,sans-serif;
+  color:#eafff0;
+  min-height:100%;
+  overflow-x:hidden;
+  background:
+    radial-gradient(circle at 20% 15%, rgba(126,249,192,.18), transparent 45%),
+    radial-gradient(circle at 85% 80%, rgba(30,136,229,.20), transparent 50%),
+    linear-gradient(160deg,#0b1f14 0%, #10281b 45%, #0d1f2b 100%);
+  min-height:100vh;
+  display:flex; flex-direction:column; align-items:center;
+  padding:calc(env(safe-area-inset-top,0px) + 14px) 14px calc(env(safe-area-inset-bottom,0px) + 14px);
+  position:relative;
+}
+/* floating decorative bits */
+.floaty{position:fixed; font-size:1.4rem; opacity:.15; animation:drift 14s linear infinite; pointer-events:none;}
+@keyframes drift{ from{transform:translateY(110vh) rotate(0deg);} to{transform:translateY(-10vh) rotate(360deg);} }
+
+h1{
+  font-size:1.5rem; text-align:center; margin-bottom:2px;
+  background:linear-gradient(90deg,#7ef9c0,#4dd0e1,#7ef9c0);
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+  font-weight:800; letter-spacing:.5px;
+}
+.sub{opacity:.75; font-size:.82rem; margin-bottom:12px; text-align:center;}
+
+.hud{
+  display:flex; gap:10px; flex-wrap:wrap; justify-content:center; width:100%; max-width:440px;
+  margin-bottom:14px;
+}
+.hud .chip{
+  flex:1; min-width:90px;
+  background:rgba(255,255,255,.07);
+  border:1px solid rgba(255,255,255,.12);
+  backdrop-filter:blur(6px);
+  border-radius:14px; padding:8px 10px; text-align:center;
+  box-shadow:0 4px 14px rgba(0,0,0,.25);
+}
+.hud .chip .label{font-size:.68rem; opacity:.7; display:block;}
+.hud .chip .val{font-size:1.1rem; font-weight:800; color:var(--accent);}
+#hearts{font-size:1.05rem;}
+
+#stage{
+  width:100%; max-width:440px;
+  background:linear-gradient(160deg, rgba(255,255,255,.09), rgba(255,255,255,.02));
+  border:1px solid rgba(255,255,255,.15);
+  border-radius:22px;
+  padding:26px 16px;
+  display:flex; flex-direction:column; align-items:center; gap:8px;
+  min-height:170px; justify-content:center;
+  box-shadow:0 10px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.15);
+  position:relative; overflow:hidden;
+}
+#stage::before{
+  content:''; position:absolute; inset:0;
+  background:radial-gradient(circle at 50% 0%, rgba(126,249,192,.15), transparent 60%);
+}
+#itemEmoji{font-size:4rem; filter:drop-shadow(0 6px 10px rgba(0,0,0,.4)); animation:pop .35s ease; z-index:1;}
+#itemName{font-size:1.15rem; font-weight:700; z-index:1;}
+@keyframes pop{ from{transform:scale(.4) translateY(20px); opacity:0;} to{transform:scale(1) translateY(0); opacity:1;} }
+
+#bins{
+  display:grid; grid-template-columns:repeat(2,1fr); gap:12px;
+  width:100%; max-width:440px; margin-top:18px;
+}
+.bin{
+  border:none; border-radius:16px; padding:16px 6px;
+  font-weight:700; font-size:.82rem; color:#08130a;
+  cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:4px;
+  position:relative; overflow:hidden;
+  box-shadow:0 6px 16px rgba(0,0,0,.35), inset 0 -4px 8px rgba(0,0,0,.2);
+  transition:transform .12s;
+}
+.bin:active{transform:scale(.94);}
+.bin span.emoji{font-size:1.9rem; filter:drop-shadow(0 2px 3px rgba(0,0,0,.3));}
+.bin.green{background:linear-gradient(160deg,var(--green),var(--green2)); color:#fff;}
+.bin.yellow{background:linear-gradient(160deg,var(--yellow),var(--yellow2)); color:#241a00;}
+.bin.red{background:linear-gradient(160deg,var(--red),var(--red2)); color:#fff;}
+.bin.blue{background:linear-gradient(160deg,var(--blue),var(--blue2)); color:#fff;}
+.bin.correct{outline:4px solid #fff; box-shadow:0 0 22px #fff, 0 6px 16px rgba(0,0,0,.35);}
+.bin.incorrect{outline:4px solid #000; filter:grayscale(.4);}
+
+#msg{margin-top:14px; min-height:1.4em; font-weight:800; text-align:center; font-size:1.05rem;}
+#msg.good{color:#7ef9c0; text-shadow:0 0 10px rgba(126,249,192,.6);}
+#msg.bad{color:#ff8a80;}
+
+button.ctrl{
+  margin-top:16px; padding:12px 26px; border:none; border-radius:30px;
+  background:linear-gradient(90deg,#7ef9c0,#4dd0e1); color:#062018; font-weight:800; font-size:1rem;
+  cursor:pointer; box-shadow:0 8px 20px rgba(77,208,225,.35);
+}
+button.ctrl:active{transform:scale(.96);}
+#installBtn{display:none; margin-top:8px; background:linear-gradient(90deg,#ffd54f,#ff8a65); color:#241a00;}
+
+.combo{
+  position:fixed; top:20%; left:50%; transform:translateX(-50%);
+  font-size:1.6rem; font-weight:900; color:#ffd54f; text-shadow:0 0 14px rgba(255,213,79,.7);
+  pointer-events:none; opacity:0; z-index:50;
+}
+.combo.show{animation:comboPop .7s ease forwards;}
+@keyframes comboPop{
+  0%{opacity:0; transform:translateX(-50%) scale(.5) translateY(10px);}
+  25%{opacity:1; transform:translateX(-50%) scale(1.15) translateY(0);}
+  70%{opacity:1;}
+  100%{opacity:0; transform:translateX(-50%) scale(1) translateY(-25px);}
+}
+</style>
+</head>
+<body>
+<h1>🗑️ เกมแยกขยะให้ถูกประเภท</h1>
+<div class="sub">เล่นได้ไม่จำกัดเวลา — แตะถังขยะให้ถูกประเภท ยิ่งต่อเนื่องยิ่งได้คอมโบ! ตอบผิด 3 ครั้งจบเกม</div>
+
+<div class="hud">
+  <div class="chip"><span class="label">🎯 คะแนน</span><span class="val" id="score">0</span></div>
+  <div class="chip"><span class="label">🔥 คอมโบ</span><span class="val" id="comboVal">0</span></div>
+  <div class="chip"><span class="label">พลังชีวิต</span><span class="val" id="hearts">❤️❤️❤️</span></div>
+</div>
+
+<div id="stage">
+  <div id="itemEmoji">♻️</div>
+  <div id="itemName">แตะ "เริ่มเกม" ด้านล่างเพื่อเริ่มเล่น</div>
+</div>
+
+<div id="bins">
+  <button class="bin green" data-type="organic"><span class="emoji">🍃</span>ถังเขียว<br>ย่อยสลาย/อินทรีย์</button>
+  <button class="bin yellow" data-type="recycle"><span class="emoji">♻️</span>ถังเหลือง<br>รีไซเคิล</button>
+  <button class="bin red" data-type="hazard"><span class="emoji">☣️</span>ถังแดง<br>อันตราย/อิเล็กทรอนิกส์</button>
+  <button class="bin blue" data-type="general"><span class="emoji">🗑️</span>ถังน้ำเงิน<br>ทั่วไป</button>
+</div>
+
+<div id="msg"></div>
+<button class="ctrl" id="startBtn">▶️ เริ่มเกม</button>
+<button class="ctrl" id="installBtn">⬇️ ติดตั้งเกมลงเครื่อง</button>
+<div class="combo" id="comboFx"></div>
+
+<script>
+const ITEMS = [
+  {emoji:"🍌", name:"เปลือกกล้วย", type:"organic"},
+  {emoji:"🍎", name:"เศษผลไม้", type:"organic"},
+  {emoji:"🍚", name:"เศษข้าว/อาหาร", type:"organic"},
+  {emoji:"🍂", name:"ใบไม้แห้ง", type:"organic"},
+  {emoji:"🥬", name:"เศษผัก", type:"organic"},
+  {emoji:"🥚", name:"เปลือกไข่", type:"organic"},
+  {emoji:"🐟", name:"ก้างปลา", type:"organic"},
+  {emoji:"🌽", name:"ซังข้าวโพด", type:"organic"},
+  {emoji:"☕", name:"กากกาแฟ", type:"organic"},
+  {emoji:"🧴", name:"ขวดพลาสติก", type:"recycle"},
+  {emoji:"📦", name:"กล่องกระดาษ", type:"recycle"},
+  {emoji:"🥫", name:"กระป๋องอลูมิเนียม", type:"recycle"},
+  {emoji:"🍾", name:"ขวดแก้ว", type:"recycle"},
+  {emoji:"📰", name:"เศษกระดาษหนังสือพิมพ์", type:"recycle"},
+  {emoji:"🥤", name:"แก้วพลาสติก", type:"recycle"},
+  {emoji:"🛍️", name:"ถุงพลาสติกสะอาด", type:"recycle"},
+  {emoji:"📖", name:"สมุดกระดาษเก่า", type:"recycle"},
+  {emoji:"🪙", name:"เศษโลหะ/ฝาขวด", type:"recycle"},
+  {emoji:"🔋", name:"ถ่านไฟฉาย", type:"hazard"},
+  {emoji:"💡", name:"หลอดไฟเก่า", type:"hazard"},
+  {emoji:"📱", name:"โทรศัพท์เก่า/อิเล็กทรอนิกส์", type:"hazard"},
+  {emoji:"🧪", name:"ขวดสารเคมี", type:"hazard"},
+  {emoji:"💊", name:"ยาหมดอายุ", type:"hazard"},
+  {emoji:"🖥️", name:"ชิ้นส่วนอิเล็กทรอนิกส์", type:"hazard"},
+  {emoji:"🎨", name:"กระป๋องสีสเปรย์", type:"hazard"},
+  {emoji:"🧯", name:"สเปรย์ฆ่าแมลง", type:"hazard"},
+  {emoji:"🖊️", name:"ปากกาหมึกหมด", type:"general"},
+  {emoji:"🚬", name:"ก้นบุหรี่", type:"general"},
+  {emoji:"🧦", name:"เศษผ้า/ถุงเท้าขาด", type:"general"},
+  {emoji:"🍬", name:"ห่อลูกอม", type:"general"},
+  {emoji:"🩹", name:"พลาสเตอร์ยาใช้แล้ว", type:"general"},
+  {emoji:"🧻", name:"กระดาษทิชชู่ใช้แล้ว", type:"general"},
+  {emoji:"🎈", name:"ลูกโป่งแตก", type:"general"}
+];
+
+let score=0, lives=3, current=null, playing=false, combo=0, best=0;
+
+const scoreEl=document.getElementById('score');
+const heartsEl=document.getElementById('hearts');
+const comboValEl=document.getElementById('comboVal');
+const comboFx=document.getElementById('comboFx');
+const msgEl=document.getElementById('msg');
+const emojiEl=document.getElementById('itemEmoji');
+const nameEl=document.getElementById('itemName');
+const bins=document.querySelectorAll('.bin');
+
+// decorative floating emojis
+const floatEmojis=['♻️','🍃','🧴','🥫','🔋'];
+for(let i=0;i<6;i++){
+  const f=document.createElement('div');
+  f.className='floaty';
+  f.textContent=floatEmojis[i%floatEmojis.length];
+  f.style.left=(Math.random()*100)+'vw';
+  f.style.animationDuration=(10+Math.random()*10)+'s';
+  f.style.animationDelay=(Math.random()*10)+'s';
+  document.body.appendChild(f);
+}
+
+function updateHearts(){ heartsEl.textContent='❤️'.repeat(Math.max(lives,0)) + '🖤'.repeat(3-Math.max(lives,0)); }
+
+function nextItem(){
+  current = ITEMS[Math.floor(Math.random()*ITEMS.length)];
+  emojiEl.style.animation='none';
+  void emojiEl.offsetWidth;
+  emojiEl.style.animation='';
+  emojiEl.textContent = current.emoji;
+  nameEl.textContent = current.name;
+}
+
+function showCombo(text){
+  comboFx.textContent=text;
+  comboFx.classList.remove('show');
+  void comboFx.offsetWidth;
+  comboFx.classList.add('show');
+}
+
+function pick(type, btn){
+  if(!playing) return;
+  const correct = type===current.type;
+  btn.classList.add(correct?'correct':'incorrect');
+  setTimeout(()=>btn.classList.remove('correct','incorrect'),350);
+  if(correct){
+    combo++;
+    best=Math.max(best,combo);
+    const bonus = combo>=5 ? 15 : combo>=3 ? 10 : 5;
+    score+=bonus;
+    comboValEl.textContent=combo;
+    msgEl.textContent='✅ ถูกต้อง! +'+bonus;
+    msgEl.className='good';
+    if(combo>0 && combo%3===0) showCombo('🔥 คอมโบ x'+combo+'!');
+  } else {
+    combo=0;
+    comboValEl.textContent=combo;
+    score=Math.max(0,score-2);
+    lives--;
+    updateHearts();
+    msgEl.textContent='❌ ผิดถัง! ลองใหม่';
+    msgEl.className='bad';
+    if(lives<=0){ endGame(); return; }
+  }
+  scoreEl.textContent=score;
+  nextItem();
+}
+
+bins.forEach(b=>b.addEventListener('click',()=>pick(b.dataset.type,b)));
+
+function endGame(){
+  playing=false;
+  nameEl.textContent='จบเกม!';
+  emojiEl.textContent='🏁';
+  msgEl.className='';
+  msgEl.textContent=`คะแนนสุดท้าย: ${score} แต้ม | คอมโบสูงสุด: ${best}`;
+  document.getElementById('startBtn').textContent='🔁 เล่นอีกครั้ง';
+}
+
+function startGame(){
+  score=0; lives=3; playing=true; combo=0; best=0;
+  scoreEl.textContent=score;
+  comboValEl.textContent=combo;
+  updateHearts();
+  msgEl.textContent=''; msgEl.className='';
+  nextItem();
+  document.getElementById('startBtn').textContent='🔁 เริ่มใหม่';
+}
+
+document.getElementById('startBtn').addEventListener('click', startGame);
+updateHearts();
+
+// PWA: register service worker for offline support (only works when hosted, not in a sandboxed preview)
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
+
+// PWA: show an install button when the browser offers it
+let deferredPrompt = null;
+const installBtn = document.getElementById('installBtn');
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  installBtn.style.display = 'inline-block';
+});
+installBtn.addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  installBtn.style.display = 'none';
+});
+window.addEventListener('appinstalled', () => {
+  installBtn.style.display = 'none';
+});
+</script>
+</body>
+</html>
