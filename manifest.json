@@ -1,0 +1,14 @@
+{
+  "name": "เกมแยกขยะให้ถูกประเภท",
+  "short_name": "แยกขยะ",
+  "description": "เกมแยกขยะให้ถูกประเภท เล่นได้ไม่จำกัดเวลา",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b1f14",
+  "theme_color": "#10281b",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
